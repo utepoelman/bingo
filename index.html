@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math BINGO Suite</title>
+  <title>Maths BINGO Suite</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -102,9 +102,9 @@
         </div>
         <div>
           <h1 class="font-black text-xl tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
-            Math BINGO
+            Maths BINGO
           </h1>
-          <p class="text-xs text-slate-400 font-medium hidden sm:block">Multiplayer Math Strategy Game</p>
+          <p class="text-xs text-slate-400 font-medium hidden sm:block">Multiplayer Maths Strategy Game</p>
         </div>
       </div>
 
@@ -206,7 +206,7 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Your Name</label>
-          <input type="text" id="inputPlayerName" placeholder="e.g. MathChamp" maxlength="12" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 font-medium">
+          <input type="text" id="inputPlayerName" placeholder="e.g. MathsChamp" maxlength="12" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 font-medium">
         </div>
 
         <div>
@@ -434,17 +434,25 @@
 
       <div class="space-y-2">
         <h2 id="winTitle" class="text-3xl font-black text-white">BINGO!</h2>
-        <p id="winSubtitle" class="text-slate-300 font-medium"><span id="winnerName" class="text-amber-400 font-bold">Player</span> has completed a BINGO line!</p>
+        <p id="winSubtitle" class="text-slate-300 font-medium"></p>
       </div>
 
       <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800 space-y-2 text-sm">
         <div class="flex justify-between text-slate-400">
-          <span>Winning Player:</span>
+          <span>Player:</span>
           <span id="winPlayerName" class="font-bold text-white">---</span>
         </div>
         <div class="flex justify-between text-slate-400">
-          <span>Total Rounds:</span>
+          <span>Round:</span>
           <span id="winRoundCount" class="font-bold text-white">--</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Bingo Lines:</span>
+          <span id="winLineCount" class="font-bold text-white">--</span>
+        </div>
+        <div class="pt-2 border-t border-slate-800 text-left">
+          <span class="text-xs uppercase font-extrabold tracking-wider text-indigo-400 block mb-1">Standings</span>
+          <ol id="winStandings" class="space-y-1 text-slate-200 text-sm"></ol>
         </div>
       </div>
 
@@ -482,7 +490,7 @@
     }
 
     /**
-     * Web Audio API Synthesizer Sound Engine
+     * Web Audio API Synthesiser Sound Engine
      */
     class SoundEngine {
       constructor() {
@@ -583,9 +591,9 @@
     const sound = new SoundEngine();
 
     /**
-     * Main Math BINGO Application Class (Factor BINGO + Three Dice BINGO)
+     * Main Maths BINGO Application Class (Factor BINGO + Three Dice BINGO)
      */
-    class MathBingoApp {
+    class MathsBingoApp {
       constructor() {
         this.mode = 'IDLE'; // 'HOST', 'PLAYER', 'OFFLINE'
         this.roomCode = null;
@@ -623,6 +631,9 @@
         this.boardNumbers = []; // 25 numbers
         this.boardClaimed = Array(25).fill(false); // boolean grid
         this.playerScore = 0;
+        this.myReportedLines = 0;   // lines I have already reported as a BINGO
+        this.finishOrder = [];      // host: player ids in the order they completed their first line
+        this.celebratedLines = {};  // host: id -> number of lines already celebrated
 
         // Opponents State tracking map: peerId -> { name, claimed: Array(25), lines: 0, movedThisRound: bool }
         this.playersMap = {};
@@ -654,6 +665,8 @@
         if (this.calcTimeout) clearTimeout(this.calcTimeout);
         this.calcTimeout = null;
         this.isCalculating = false;
+        this.finishOrder = [];
+        this.celebratedLines = {};
       }
 
       // --- GAME TYPE SELECTION ---
@@ -869,7 +882,7 @@
         });
 
         this.mqttClient.on('connect', () => {
-          const topic = `math-bingo-v4/${this.roomCode}`;
+          const topic = `maths-bingo-v4/${this.roomCode}`;
           this.mqttClient.subscribe(topic, { qos: 0 }, (err) => {
             if (!err) {
               if (this.isHost) {
@@ -901,7 +914,7 @@
         data.roomCode = this.roomCode;
         data.senderId = this.myPeerId;
         if (this.mqttClient && this.mqttClient.connected) {
-          const topic = `math-bingo-v4/${this.roomCode}`;
+          const topic = `maths-bingo-v4/${this.roomCode}`;
           this.mqttClient.publish(topic, JSON.stringify(data), { qos: 0 });
         }
       }
@@ -981,9 +994,14 @@
             }
             break;
 
+          case 'BINGO_CLAIM':
+            if (this.isHost && typeof msg.lines === 'number') {
+              this.registerBingo(msg.senderId, msg.lines);
+            }
+            break;
+
           case 'BINGO_WIN':
-            sound.playBingoFanfare();
-            this.showWinModal(msg.winnerName, msg.roundNumber);
+            if (!this.isHost) this.handleBingoWin(msg);
             break;
         }
       }
@@ -1049,6 +1067,8 @@
         this.gameStarted = true;
         this.roundNumber = 1;
         this.drawnTargets = [];
+        this.finishOrder = [];
+        this.celebratedLines = {};
         this.generateRoll();
 
         Object.keys(this.playersMap).forEach(id => {
@@ -1099,7 +1119,7 @@
 
         this.playersMap = {
           'SOLO_USER': { name: this.myPlayerName, claimed: this.newClaimed(), lines: 0, movedThisRound: false },
-          'AI_1': { name: 'MathBot Alpha', claimed: this.newClaimed(), lines: 0, movedThisRound: false },
+          'AI_1': { name: 'MathsBot Alpha', claimed: this.newClaimed(), lines: 0, movedThisRound: false },
           'AI_2': { name: 'FactorBot', claimed: this.newClaimed(), lines: 0, movedThisRound: false },
           'AI_3': { name: 'QuickCalc', claimed: this.newClaimed(), lines: 0, movedThisRound: false }
         };
@@ -1107,6 +1127,8 @@
         this.roundNumber = 1;
         this.timerDuration = GAME_TYPES[this.gameType].defaultTimer;
         this.drawnTargets = [];
+        this.finishOrder = [];
+        this.celebratedLines = {};
         this.generateRoll();
 
         document.getElementById('hostForceRollBtn').classList.remove('hidden');
@@ -1186,6 +1208,7 @@
         this.boardNumbers = this.generateBoardNumbers();
         this.boardClaimed = this.newClaimed();
         this.playerScore = 0;
+        this.myReportedLines = 0;
         this.claimedThisRound = false;
 
         if (this.mode === 'OFFLINE') {
@@ -1358,8 +1381,10 @@
 
           this.broadcastBoardUpdate(true);
 
-          if (this.playerScore > 0) {
-            this.triggerBingoWin();
+          // Only celebrate when a NEW bingo line has been completed
+          if (this.playerScore > this.myReportedLines) {
+            this.myReportedLines = this.playerScore;
+            this.reportBingo(this.playerScore);
           }
         } else {
           sound.playWrongBuzz();
@@ -1582,28 +1607,78 @@
         return lines;
       }
 
-      triggerBingoWin() {
-        sound.playBingoFanfare();
-        const winnerName = this.myPlayerName;
-
-        this.broadcastToAll({
-          type: 'BINGO_WIN',
-          winnerName: winnerName,
-          roundNumber: this.roundNumber
-        });
-
-        this.showWinModal(winnerName, this.roundNumber);
+      ordinal(n) {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
       }
 
-      showWinModal(winnerName, roundNum) {
-        document.getElementById('winnerName').textContent = winnerName;
-        document.getElementById('winPlayerName').textContent = winnerName;
-        document.getElementById('winRoundCount').textContent = roundNum;
+      // Called by a player when they have completed a new bingo line.
+      // The host is the referee: it decides the finishing order.
+      reportBingo(lines) {
+        if (this.isHost) {
+          this.registerBingo(this.myPeerId, lines);
+        } else {
+          this.broadcastToAll({ type: 'BINGO_CLAIM', lines: lines });
+        }
+      }
+
+      // Host only: record a bingo, assign a place on a player's first line,
+      // and announce it. A player only gets another announcement for a new line.
+      registerBingo(id, lines) {
+        const p = this.playersMap[id];
+        if (!p) return;
+        if (lines <= (this.celebratedLines[id] || 0)) return;
+        this.celebratedLines[id] = lines;
+
+        const isNewPlace = !this.finishOrder.includes(id);
+        if (isNewPlace) this.finishOrder.push(id);
+
+        const msg = {
+          type: 'BINGO_WIN',
+          winnerName: p.name,
+          roundNumber: this.roundNumber,
+          lines: lines,
+          place: this.finishOrder.indexOf(id) + 1,
+          isNewPlace: isNewPlace,
+          standings: this.finishOrder.map(fid => (this.playersMap[fid] || {}).name || '?')
+        };
+        this.broadcastToAll(msg);
+        this.handleBingoWin(msg);
+      }
+
+      handleBingoWin(msg) {
+        sound.playBingoFanfare();
+        this.showWinModal(msg);
+      }
+
+      showWinModal(msg) {
+        const name = esc(msg.winnerName);
+        const title = document.getElementById('winTitle');
+        const sub = document.getElementById('winSubtitle');
+
+        if (msg.isNewPlace && msg.place === 1) {
+          title.textContent = 'BINGO!';
+          sub.innerHTML = `<span class="text-amber-400 font-bold">${name}</span> is the winner!`;
+        } else if (msg.isNewPlace) {
+          title.textContent = 'BINGO!';
+          sub.innerHTML = `<span class="text-amber-400 font-bold">${name}</span> takes <strong>${this.ordinal(msg.place)} place</strong>!`;
+        } else {
+          title.textContent = 'ANOTHER LINE!';
+          sub.innerHTML = `<span class="text-amber-400 font-bold">${name}</span> completed a new BINGO line!`;
+        }
+
+        document.getElementById('winPlayerName').textContent = msg.winnerName;
+        document.getElementById('winRoundCount').textContent = msg.roundNumber;
+        document.getElementById('winLineCount').textContent = msg.lines;
+        document.getElementById('winStandings').innerHTML = (msg.standings || []).map((n, i) =>
+          `<li class="flex items-center justify-between"><span><span class="text-indigo-300 font-bold mr-2">${this.ordinal(i + 1)}</span>${esc(n)}</span>${i === 0 ? '<i class="fa-solid fa-trophy text-amber-400"></i>' : ''}</li>`
+        ).join('');
         document.getElementById('winModal').classList.remove('hidden');
 
         if (typeof confetti === 'function') {
           confetti({
-            particleCount: 100,
+            particleCount: msg.isNewPlace && msg.place === 1 ? 140 : 80,
             spread: 70,
             origin: { y: 0.6 }
           });
@@ -1713,6 +1788,7 @@
               const randomIndex = unclaimedIndices[Math.floor(Math.random() * unclaimedIndices.length)];
               ai.claimed[randomIndex] = true;
               ai.lines = this.calculateBingoLines(ai.claimed);
+              if (ai.lines > 0) this.registerBingo(aiId, ai.lines);
             }
             ai.movedThisRound = true;
             this.renderOpponentMatrices();
@@ -1722,8 +1798,8 @@
       }
     }
 
-    // Initialize Global App Instance
-    const app = new MathBingoApp();
+    // Initialise Global App Instance
+    const app = new MathsBingoApp();
     window.onload = () => app.init();
   </script>
 </body>
