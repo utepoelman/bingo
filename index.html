@@ -657,6 +657,7 @@
 
         // Opponents State tracking map: peerId -> { name, claimed: Array(25), lines: 0, movedThisRound: bool }
         this.playersMap = {};
+        this.removedIds = {}; // host: ids of players the host has removed (ignored if they try to rejoin)
       }
 
       init() {
@@ -837,6 +838,7 @@
         this.cleanupNetwork();
         this.isHost = true;
         this.mode = 'HOST';
+        this.removedIds = {};
         this.roomCode = this.generateRoomCode();
         this.myPlayerName = hostName;
         this.myPeerId = `host-${Math.random().toString(36).substr(2, 6)}`;
@@ -1022,6 +1024,11 @@
         switch (msg.type) {
           case 'PLAYER_JOIN_REQ':
             if (this.isHost) {
+              if (this.removedIds[msg.senderId]) {
+                // Removed players stay removed; re-tell them in case they missed it
+                this.broadcastToAll({ type: 'PLAYER_REMOVED', playerId: msg.senderId });
+                break;
+              }
               this.playersMap[msg.senderId] = {
                 name: String(msg.playerName || 'Player').slice(0, 12),
                 claimed: this.newClaimed(),
@@ -1043,6 +1050,18 @@
               this.updateGameTypeUI();
               document.getElementById('lobbyGameTypeBadge').classList.remove('hidden');
               this.updateLobbyPlayerList();
+            }
+            break;
+
+          case 'PLAYER_REMOVED':
+            if (!this.isHost && msg.playerId) {
+              if (msg.playerId === this.myPeerId) {
+                this.handleRemovedByHost();
+              } else if (this.playersMap[msg.playerId]) {
+                delete this.playersMap[msg.playerId];
+                this.updateLobbyPlayerList();
+                if (this.gameStarted) this.renderOpponentMatrices();
+              }
             }
             break;
 
@@ -1161,6 +1180,38 @@
         }
       }
 
+      // --- HOST: REMOVE A PLAYER (lobby or mid-game) ---
+      removePlayer(id) {
+        if (!this.isHost || this.mode !== 'HOST') return;
+        if (id === this.myPeerId) return; // host can't remove themselves
+        const p = this.playersMap[id];
+        if (!p) return;
+        if (!confirm(`Remove "${p.name}" from the game?`)) return;
+
+        this.removedIds[id] = true;
+        delete this.playersMap[id];
+        this.finishOrder = this.finishOrder.filter(fid => fid !== id);
+        delete this.celebratedLines[id];
+
+        this.broadcastToAll({ type: 'PLAYER_REMOVED', playerId: id });
+
+        this.updateLobbyPlayerList();
+        if (this.gameStarted) {
+          this.renderOpponentMatrices();
+          // Everyone left may already have moved - don't leave the round waiting
+          this.checkAllPlayersMoved();
+        } else {
+          this.broadcastState();
+        }
+      }
+
+      // Player side: the host removed me
+      handleRemovedByHost() {
+        if (this.mode !== 'PLAYER') return;
+        this.showLanding();
+        alert('You have been removed from the game by the host.');
+      }
+
       updateLobbyPlayerList() {
         const container = document.getElementById('lobbyPlayersList');
         container.innerHTML = '';
@@ -1171,6 +1222,7 @@
         playerIds.forEach(id => {
           const p = this.playersMap[id];
           const you = this.isSelfId(id) ? ' (You)' : '';
+          const canRemove = this.mode === 'HOST' && !this.isSelfId(id);
           const badge = document.createElement('div');
           badge.className = 'bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center space-x-3 shadow';
           badge.innerHTML = `
@@ -1184,7 +1236,11 @@
                 <span>Ready</span>
               </span>
             </div>
+            ${canRemove ? `<button type="button" data-remove-id="${esc(id)}" title="Remove ${esc(p.name)}" class="shrink-0 w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 hover:text-rose-300 border border-rose-500/30 transition flex items-center justify-center"><i class="fa-solid fa-user-xmark text-xs"></i></button>` : ''}
           `;
+          if (canRemove) {
+            badge.querySelector('[data-remove-id]').onclick = () => this.removePlayer(id);
+          }
           container.appendChild(badge);
         });
       }
@@ -1437,6 +1493,7 @@
         Object.keys(this.playersMap).forEach(id => {
           const p = this.playersMap[id];
           const isSelf = this.isSelfId(id);
+          const canRemove = this.mode === 'HOST' && !isSelf;
 
           const card = document.createElement('div');
           card.className = `bg-slate-950 border ${isSelf ? 'border-indigo-500/40 bg-indigo-950/20' : 'border-slate-800'} rounded-xl p-3 flex items-center justify-between space-x-3`;
@@ -1456,6 +1513,7 @@
             <div class="flex-1 truncate">
               <div class="flex items-center space-x-2">
                 <span class="font-bold text-xs text-white truncate">${esc(p.name)}</span>
+                ${canRemove ? `<button type="button" data-remove-id="${esc(id)}" title="Remove ${esc(p.name)}" class="shrink-0 w-5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition flex items-center justify-center"><i class="fa-solid fa-user-xmark text-[9px]"></i></button>` : ''}
                 ${isSelf ? '<span class="text-[10px] bg-indigo-500/30 text-indigo-300 font-extrabold px-1.5 py-0.5 rounded">YOU</span>' : ''}
               </div>
               <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between pr-2">
@@ -1466,6 +1524,9 @@
             ${dotsHtml}
           `;
 
+          if (canRemove) {
+            card.querySelector('[data-remove-id]').onclick = () => this.removePlayer(id);
+          }
           container.appendChild(card);
         });
       }
