@@ -111,9 +111,9 @@
       <!-- Network & Sound Controls -->
       <div class="flex items-center space-x-3">
         <!-- Audio Mute Toggle -->
-        <button id="muteBtn" onclick="sound.toggleMute()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold flex items-center space-x-2 transition border border-slate-700">
-          <i id="muteIcon" class="fa-solid fa-volume-high text-indigo-400"></i>
-          <span id="muteText" class="hidden sm:inline">Sound</span>
+        <button id="muteBtn" onclick="app.toggleSound()" title="Sound effects for the whole room" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold flex items-center space-x-2 transition border border-slate-700">
+          <i id="muteIcon" class="fa-solid fa-volume-xmark text-slate-500"></i>
+          <span id="muteText" class="hidden sm:inline">Sound off</span>
         </button>
 
         <!-- Status Pill -->
@@ -129,7 +129,7 @@
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
     <!-- 1. LANDING / MODE SELECTOR VIEW -->
-    <section id="viewLanding" class="max-w-xl w-full mx-auto space-y-6">
+    <section id="viewLanding" class="hidden max-w-xl w-full mx-auto space-y-6">
       <div class="text-center space-y-2">
         <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Ready to Play?</h2>
         <p id="landingSubtitle" class="text-slate-400"></p>
@@ -161,6 +161,14 @@
             <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Your Name</label>
             <input type="text" id="inputHostName" placeholder="e.g. Ms Smith" maxlength="12" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 font-medium">
           </div>
+          <label class="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 cursor-pointer select-none">
+            <span class="min-w-0">
+              <span class="block text-sm font-bold text-white"><i class="fa-solid fa-volume-high text-indigo-400 mr-2"></i>Sound effects</span>
+              <span class="block text-xs text-slate-400 leading-snug">Off by default. You can change this at any time during the game.</span>
+            </span>
+            <input type="checkbox" id="inputSoundEnabled" class="sr-only peer" onchange="app.setSoundEnabled(this.checked)">
+            <span class="relative shrink-0 w-11 h-6 rounded-full bg-slate-700 peer-checked:bg-indigo-600 transition after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5"></span>
+          </label>
           <button onclick="app.setupHostLobby()" class="w-full py-3 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2">
             <span>Create Room</span>
             <i class="fa-solid fa-arrow-right text-sm"></i>
@@ -198,12 +206,15 @@
           <i class="fa-solid fa-door-open text-purple-400"></i>
           <span>Join BINGO</span>
         </h3>
-        <button onclick="app.showLanding()" class="text-slate-400 hover:text-white transition">
+        <button id="joinCloseBtn" onclick="app.showLanding()" class="text-slate-400 hover:text-white transition">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
       <div class="space-y-4">
+        <p id="joinInviteNote" class="hidden text-sm text-purple-200 bg-purple-950/40 border border-purple-500/30 rounded-xl px-4 py-3">
+          <i class="fa-solid fa-link mr-1"></i> You've been invited to a game. Just type your name to join!
+        </p>
         <div>
           <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Your Name</label>
           <input type="text" id="inputPlayerName" placeholder="e.g. MathsChamp" maxlength="12" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 font-medium">
@@ -216,8 +227,8 @@
       </div>
 
       <div class="flex space-x-3 pt-2">
-        <button onclick="app.showLanding()" class="w-1/3 py-3 rounded-xl font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Cancel</button>
-        <button onclick="app.connectAsPlayer()" class="w-2/3 py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 transition flex items-center justify-center space-x-2">
+        <button id="joinCancelBtn" onclick="app.showLanding()" class="w-1/3 py-3 rounded-xl font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Cancel</button>
+        <button id="joinConnectBtn" onclick="app.connectAsPlayer()" class="w-2/3 py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 transition flex items-center justify-center space-x-2">
           <span>Connect Now</span>
           <i class="fa-solid fa-plug text-sm"></i>
         </button>
@@ -234,7 +245,7 @@
             <span class="text-xs uppercase font-extrabold tracking-wider text-indigo-400 block">Room Code</span>
             <div class="flex items-center space-x-3">
               <span id="lobbyRoomCode" class="text-4xl font-black font-mono tracking-widest text-white">----</span>
-              <button onclick="app.copyRoomCode()" class="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition">
+              <button id="copyCodeBtn" onclick="app.copyRoomCode()" class="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition">
                 <i class="fa-regular fa-copy mr-1"></i> Copy
               </button>
             </div>
@@ -242,6 +253,7 @@
 
           <div class="text-right flex items-center space-x-4">
             <div id="lobbyGameTypeBadge" class="hidden px-3 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 text-xs font-bold flex items-center space-x-2"></div>
+            <div id="lobbySoundBadge"></div>
             <div id="lobbyTimerConfig" class="text-left sm:text-right hidden sm:block">
               <span class="text-xs font-semibold text-slate-400 block">Round Timer</span>
               <select id="selectTimerDuration" onchange="app.updateTimerSetting(this.value)" class="bg-slate-900 text-xs font-semibold border border-slate-700 rounded-lg px-2 py-1 text-slate-200">
@@ -254,6 +266,18 @@
               </select>
             </div>
           </div>
+        </div>
+
+        <!-- Shareable Link (host only) -->
+        <div id="lobbyShareRow" class="hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 rounded-xl p-4 border border-indigo-500/20">
+          <div class="min-w-0">
+            <span class="text-xs uppercase font-extrabold tracking-wider text-indigo-400 block">Share Link</span>
+            <span id="lobbyShareLink" class="text-xs font-mono text-slate-300 break-all block mt-1"></span>
+            <span class="text-[11px] text-slate-500 block mt-1">Players who open this link only need to type their name.</span>
+          </div>
+          <button id="copyLinkBtn" onclick="app.copyInviteLink()" class="shrink-0 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">
+            <i class="fa-solid fa-link mr-1"></i> Copy Link
+          </button>
         </div>
 
         <!-- Connection Message for Players -->
@@ -495,7 +519,7 @@
     class SoundEngine {
       constructor() {
         this.ctx = null;
-        this.muted = false;
+        this.muted = true; // off by default; the host controls this for the room
       }
 
       init() {
@@ -506,12 +530,6 @@
         if (this.ctx && this.ctx.state === 'suspended') {
           this.ctx.resume();
         }
-      }
-
-      toggleMute() {
-        this.muted = !this.muted;
-        document.getElementById('muteIcon').className = this.muted ? 'fa-solid fa-volume-xmark text-slate-500' : 'fa-solid fa-volume-high text-indigo-400';
-        document.getElementById('muteText').textContent = this.muted ? 'Muted' : 'Sound';
       }
 
       playRollTick() {
@@ -600,6 +618,8 @@
         this.myPeerId = null;
         this.myPlayerName = 'Player';
         this.isHost = false;
+        this.soundEnabled = false;  // room setting, controlled by the host (default off)
+        this.inviteCode = null;     // set when the page was opened via a share link
         
         // MQTT Networking Client
         this.mqttClient = null;
@@ -640,8 +660,57 @@
       }
 
       init() {
+        // Opened via a share link like ?room=1234 -> join-only mode
+        try {
+          const room = (new URLSearchParams(window.location.search).get('room') || '').trim();
+          if (/^\d{4}$/.test(room)) this.inviteCode = room;
+        } catch (e) {}
+
+        ['inputPlayerName', 'inputRoomCode'].forEach(id => {
+          document.getElementById(id).addEventListener('keydown', e => {
+            if (e.key === 'Enter') this.connectAsPlayer();
+          });
+        });
+
         this.showLanding();
         this.updateGameTypeUI();
+      }
+
+      // --- SOUND (room-wide setting owned by the host) ---
+      setSoundEnabled(on, broadcast = true) {
+        this.soundEnabled = !!on;
+        sound.muted = !this.soundEnabled;
+        this.updateSoundUI();
+        if (broadcast && this.mode === 'HOST') {
+          this.broadcastToAll({ type: 'SOUND_SETTING', soundEnabled: this.soundEnabled });
+        }
+      }
+
+      toggleSound() {
+        if (this.mode !== 'HOST' && this.mode !== 'OFFLINE') return;
+        this.setSoundEnabled(!this.soundEnabled);
+      }
+
+      updateSoundUI() {
+        const on = this.soundEnabled;
+        const canControl = this.mode === 'HOST' || this.mode === 'OFFLINE';
+
+        const btn = document.getElementById('muteBtn');
+        if (btn) btn.classList.toggle('hidden', !canControl);
+        document.getElementById('muteIcon').className = on ? 'fa-solid fa-volume-high text-indigo-400' : 'fa-solid fa-volume-xmark text-slate-500';
+        document.getElementById('muteText').textContent = on ? 'Sound on' : 'Sound off';
+
+        if (canControl) {
+          const cb = document.getElementById('inputSoundEnabled');
+          if (cb) cb.checked = on;
+        }
+
+        const badge = document.getElementById('lobbySoundBadge');
+        if (badge) {
+          badge.className = 'px-3 py-2 rounded-xl border text-xs font-bold flex items-center space-x-2 ' +
+            (on ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300');
+          badge.innerHTML = `<i class="fa-solid ${on ? 'fa-volume-high' : 'fa-volume-xmark'}"></i><span>Sound ${on ? 'on' : 'off'}</span>`;
+        }
       }
 
       hideAllViews() {
@@ -717,15 +786,36 @@
 
       showLanding() {
         this.cleanupNetwork();
+        this.mode = 'IDLE';
+        this.isHost = false;
         document.getElementById('winModal').classList.add('hidden');
         this.hideAllViews();
-        document.getElementById('viewLanding').classList.remove('hidden');
+        this.updateSoundUI();
         this.updateStatus('Offline', 'bg-slate-500');
+        if (this.inviteCode) {
+          // Invited players never see the host / solo options
+          this.showJoinForm();
+          return;
+        }
+        document.getElementById('viewLanding').classList.remove('hidden');
       }
 
       showJoinForm() {
         this.hideAllViews();
         document.getElementById('viewJoinForm').classList.remove('hidden');
+
+        const inv = !!this.inviteCode;
+        const codeInput = document.getElementById('inputRoomCode');
+        if (inv) codeInput.value = this.inviteCode;
+        codeInput.readOnly = inv;
+        codeInput.classList.toggle('opacity-70', inv);
+        codeInput.classList.toggle('cursor-not-allowed', inv);
+        document.getElementById('joinInviteNote').classList.toggle('hidden', !inv);
+        document.getElementById('joinCloseBtn').classList.toggle('hidden', inv);
+        document.getElementById('joinCancelBtn').classList.toggle('hidden', inv);
+        document.getElementById('joinConnectBtn').className = (inv ? 'w-full' : 'w-2/3') +
+          ' py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 transition flex items-center justify-center space-x-2';
+        if (inv) document.getElementById('inputPlayerName').focus();
       }
 
       updateStatus(text, dotClass) {
@@ -752,6 +842,9 @@
         this.myPeerId = `host-${Math.random().toString(36).substr(2, 6)}`;
 
         document.getElementById('lobbyRoomCode').textContent = this.roomCode;
+        document.getElementById('lobbyShareLink').textContent = this.getInviteLink();
+        document.getElementById('lobbyShareRow').classList.remove('hidden');
+        this.setSoundEnabled(document.getElementById('inputSoundEnabled').checked, false);
         document.getElementById('selectTimerDuration').value = String(this.timerDuration);
         this.updateGameTypeUI();
         document.getElementById('lobbyGameTypeBadge').classList.remove('hidden');
@@ -798,6 +891,8 @@
         this.myPeerId = `player-${Math.random().toString(36).substr(2, 6)}`;
 
         document.getElementById('lobbyRoomCode').textContent = this.roomCode;
+        document.getElementById('lobbyShareRow').classList.add('hidden');
+        this.setSoundEnabled(false, false); // silent until the host says otherwise
         document.getElementById('lobbyGameTypeBadge').classList.add('hidden');
         document.getElementById('hostLobbyControls').classList.add('hidden');
         document.getElementById('lobbyTimerConfig').classList.add('hidden');
@@ -944,17 +1039,24 @@
               this.markJoined();
               this.playersMap = msg.playersMap;
               this.timerDuration = msg.timerDuration || 30;
+              if (typeof msg.soundEnabled === 'boolean') this.setSoundEnabled(msg.soundEnabled, false);
               this.updateGameTypeUI();
               document.getElementById('lobbyGameTypeBadge').classList.remove('hidden');
               this.updateLobbyPlayerList();
             }
             break;
 
+          case 'SOUND_SETTING':
+            if (!this.isHost && typeof msg.soundEnabled === 'boolean') this.setSoundEnabled(msg.soundEnabled, false);
+            break;
+
           case 'GAME_STARTED':
+            if (!this.isHost && typeof msg.soundEnabled === 'boolean') this.setSoundEnabled(msg.soundEnabled, false);
             this.handleGameStartSignal(msg);
             break;
 
           case 'NEW_ROLL_TARGET':
+            if (!this.isHost && typeof msg.soundEnabled === 'boolean') this.setSoundEnabled(msg.soundEnabled, false);
             this.handleNewRollSignal(msg);
             break;
 
@@ -1012,7 +1114,8 @@
           type: 'LOBBY_STATE_SYNC',
           gameType: this.gameType,
           playersMap: this.playersMap,
-          timerDuration: this.timerDuration
+          timerDuration: this.timerDuration,
+          soundEnabled: this.soundEnabled
         });
       }
 
@@ -1021,15 +1124,41 @@
         if (this.isHost) this.broadcastState();
       }
 
+      getInviteLink() {
+        // Current page address (without any existing query/hash) + the room code
+        return `${window.location.href.split(/[?#]/)[0]}?room=${this.roomCode}`;
+      }
+
       copyRoomCode() {
         if (!this.roomCode) return;
-        const tempInput = document.createElement('input');
-        tempInput.value = this.roomCode;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        alert(`Room Code ${this.roomCode} copied to clipboard!`);
+        this.copyText(this.roomCode, 'copyCodeBtn');
+      }
+
+      copyInviteLink() {
+        if (!this.roomCode) return;
+        this.copyText(this.getInviteLink(), 'copyLinkBtn');
+      }
+
+      copyText(text, btnId) {
+        const btn = document.getElementById(btnId);
+        const original = btn.innerHTML;
+        const done = () => {
+          btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Copied!';
+          setTimeout(() => { btn.innerHTML = original; }, 1500);
+        };
+        const fallback = () => {
+          const tmp = document.createElement('input');
+          tmp.value = text;
+          document.body.appendChild(tmp);
+          tmp.select();
+          try { document.execCommand('copy'); done(); } catch (e) { alert(text); }
+          document.body.removeChild(tmp);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(done, fallback);
+        } else {
+          fallback();
+        }
       }
 
       updateLobbyPlayerList() {
@@ -1079,6 +1208,7 @@
 
         this.broadcastToAll({
           type: 'GAME_STARTED',
+          soundEnabled: this.soundEnabled,
           gameType: this.gameType,
           roundNumber: this.roundNumber,
           currentTarget: this.currentTarget,
@@ -1116,6 +1246,7 @@
         this.roomCode = 'SOLO';
         this.myPlayerName = document.getElementById('inputHostName').value.trim() || 'You';
         this.myPeerId = 'SOLO_USER';
+        this.setSoundEnabled(document.getElementById('inputSoundEnabled').checked, false);
 
         this.playersMap = {
           'SOLO_USER': { name: this.myPlayerName, claimed: this.newClaimed(), lines: 0, movedThisRound: false },
@@ -1734,6 +1865,7 @@
 
         this.broadcastToAll({
           type: 'NEW_ROLL_TARGET',
+          soundEnabled: this.soundEnabled,
           gameType: this.gameType,
           roundNumber: this.roundNumber,
           currentTarget: this.currentTarget,
@@ -1800,7 +1932,7 @@
 
     // Initialise Global App Instance
     const app = new MathsBingoApp();
-    window.onload = () => app.init();
+    document.addEventListener('DOMContentLoaded', () => app.init());
   </script>
 </body>
 </html>
