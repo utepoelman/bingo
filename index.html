@@ -1072,7 +1072,7 @@
             if (this.isHost) {
               this.broadcastToAll({
                 type: 'OPPONENT_UPDATE',
-                senderId: msg.senderId,
+                playerId: msg.senderId, // senderId is overwritten with the host's id on send
                 claimed: msg.claimed,
                 lines: msg.lines,
                 movedThisRound: msg.movedThisRound
@@ -1084,12 +1084,12 @@
             break;
 
           case 'OPPONENT_UPDATE':
-            if (!this.isHost && msg.senderId !== this.myPeerId) {
-              if (this.playersMap[msg.senderId]) {
-                this.playersMap[msg.senderId].claimed = msg.claimed;
-                this.playersMap[msg.senderId].lines = msg.lines;
+            if (!this.isHost && msg.playerId && msg.playerId !== this.myPeerId) {
+              if (this.playersMap[msg.playerId]) {
+                this.playersMap[msg.playerId].claimed = msg.claimed;
+                this.playersMap[msg.playerId].lines = msg.lines;
                 if (msg.movedThisRound) {
-                  this.playersMap[msg.senderId].movedThisRound = true;
+                  this.playersMap[msg.playerId].movedThisRound = true;
                 }
                 this.renderOpponentMatrices();
               }
