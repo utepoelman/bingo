@@ -613,7 +613,7 @@
           </button>
 
           <!-- Pause / Resume -->
-          <button onclick="app.togglePauseGame()" title="Pause countdown timer" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700">
+          <button id="classroomPauseBtn" onclick="app.togglePauseGame()" title="Pause countdown timer" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700">
             <i id="classroomPauseIcon" class="fa-solid fa-pause"></i>
           </button>
 
@@ -629,16 +629,37 @@
         
         <div class="flex items-center justify-between">
           <span class="text-sm font-extrabold text-indigo-400 uppercase tracking-widest bg-indigo-950/80 border border-indigo-500/30 px-4 py-1.5 rounded-full">
-            ROUND <span id="classroomRoundNum">#1</span>
+            <span id="classroomRoundLabel">ROUND <span id="classroomRoundNum">#1</span></span>
+            <span id="classroomReadyLabel" class="hidden">GET READY</span>
           </span>
 
           <!-- Round Timer Countdown Display -->
-          <div class="flex items-center space-x-2 text-slate-300">
+          <div id="classroomTimerWrap" class="flex items-center space-x-2 text-slate-300">
             <i class="fa-regular fa-clock text-indigo-400"></i>
             <span class="text-xs uppercase font-bold text-slate-400">Timer:</span>
             <span id="classroomTimerText" class="font-mono text-lg font-black text-amber-400">30s</span>
           </div>
         </div>
+
+        <!-- Pre-game Ready Panel (shown until host starts the game) -->
+        <div id="classroomReadyPanel" class="hidden py-6 sm:py-10 space-y-6">
+          <div class="space-y-3">
+            <div class="text-6xl sm:text-7xl text-indigo-300"><i class="fa-solid fa-chalkboard-user"></i></div>
+            <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight">Ready to Play?</h2>
+            <p class="text-base sm:text-xl font-bold text-indigo-200 max-w-2xl mx-auto">
+              Make sure every player has their BINGO card and understands the rules. The first round begins when you press the button.
+            </p>
+          </div>
+          <div class="flex justify-center">
+            <button onclick="app.classroomBeginGame()" class="py-5 px-12 rounded-2xl font-black text-2xl sm:text-3xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-2xl shadow-emerald-500/30 transition transform hover:scale-105 active:scale-95 flex items-center space-x-3">
+              <i class="fa-solid fa-play"></i>
+              <span>START GAME</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Game Stage (hidden until the game is started) -->
+        <div id="classroomLiveStage" class="space-y-8">
 
         <!-- Prominent Number / Dice Display -->
         <div class="py-4 space-y-4">
@@ -680,6 +701,8 @@
           </button>
         </div>
 
+        </div><!-- /classroomLiveStage -->
+
       </div>
 
       <!-- Previously Rolled Numbers History Record (Bottom of Screen) -->
@@ -694,7 +717,7 @@
 
         <!-- Scrollable History Pills Container -->
         <div id="classroomHistoryList" class="flex items-center gap-2 overflow-x-auto pb-2 pt-1 min-h-[52px]">
-          <span class="text-xs text-slate-500 italic">No numbers rolled yet. Tap 'Roll Next Number' to begin.</span>
+          <span class="text-xs text-slate-500 italic">No numbers rolled yet. Press 'Start Game' to begin.</span>
         </div>
       </div>
 
@@ -1020,6 +1043,7 @@
         this.timerDuration = 30;
         this.timerRemaining = 30;
         this.timerInterval = null;
+        this.classroomAwaitingStart = false;
         this.isPaused = false;
         this.claimedThisRound = false;
         this.joinTimeout = null;
@@ -1133,6 +1157,7 @@
         }
         this.mqttClient = null;
         this.gameStarted = false;
+        this.classroomAwaitingStart = false;
         this.joinConfirmed = false;
         this.isPaused = false;
         this.claimedThisRound = false;
@@ -1736,10 +1761,38 @@
         this.timerDuration = GAME_TYPES[this.gameType].defaultTimer;
         this.drawnTargets = [];
         this.rollHistory = [];
+        this.currentTarget = null;
+        this.currentDice = [];
 
-        this.generateRoll();
+        // Wait for the host to press START GAME before the first roll / timer begins
+        this.classroomAwaitingStart = true;
+        this.isPaused = false;
+        this.timerRemaining = this.timerDuration;
         this.setupClassroomUI();
+      }
+
+      classroomBeginGame() {
+        if (this.mode !== 'CLASSROOM' || !this.classroomAwaitingStart) return;
+        this.classroomAwaitingStart = false;
+        this.roundNumber = 1;
+        this.rollHistory = [];
+        this.drawnTargets = [];
+        sound.playRollTick();
+        this.generateRoll();
+        this.applyClassroomStartState();
+        this.updateClassroomDisplay();
+        this.renderClassroomHistory();
         this.startRoundTimer();
+      }
+
+      applyClassroomStartState() {
+        const waiting = !!this.classroomAwaitingStart;
+        document.getElementById('classroomReadyPanel').classList.toggle('hidden', !waiting);
+        document.getElementById('classroomLiveStage').classList.toggle('hidden', waiting);
+        document.getElementById('classroomTimerWrap').classList.toggle('hidden', waiting);
+        document.getElementById('classroomRoundLabel').classList.toggle('hidden', waiting);
+        document.getElementById('classroomReadyLabel').classList.toggle('hidden', !waiting);
+        document.getElementById('classroomPauseBtn').classList.toggle('hidden', waiting);
       }
 
       setupClassroomUI() {
@@ -1753,7 +1806,8 @@
         document.getElementById('classroomFactorBox').classList.toggle('hidden', isDice);
         document.getElementById('classroomDiceBox').classList.toggle('hidden', !isDice);
 
-        this.updateClassroomDisplay();
+        this.applyClassroomStartState();
+        if (!this.classroomAwaitingStart) this.updateClassroomDisplay();
         this.renderClassroomHistory();
       }
 
@@ -1785,7 +1839,7 @@
         document.getElementById('historyRollCount').textContent = this.rollHistory.length;
 
         if (this.rollHistory.length === 0) {
-          list.innerHTML = '<span class="text-xs text-slate-500 italic">No numbers rolled yet. Tap "ROLL NEXT NUMBER" to begin.</span>';
+          list.innerHTML = '<span class="text-xs text-slate-500 italic">No numbers rolled yet. Press "START GAME" to begin.</span>';
           return;
         }
 
@@ -2440,6 +2494,7 @@
 
       hostTriggerRoll() {
         if (!this.isHost && this.mode !== 'OFFLINE' && this.mode !== 'CLASSROOM') return;
+        if (this.mode === 'CLASSROOM' && this.classroomAwaitingStart) return;
 
         Object.keys(this.playersMap).forEach(id => {
           if (this.playersMap[id]) {
