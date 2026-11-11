@@ -63,7 +63,7 @@
       touch-action: manipulation;
     }
 
-    /* Three Dice BINGO: working tiles & operation buttons */
+    /* Three / Two Dice BINGO: working tiles & operation buttons */
     .work-num {
       width: 64px; height: 64px; border-radius: 14px; border: none;
       background: #334155; color: #fff; font-size: 26px; font-weight: 800;
@@ -299,12 +299,15 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Type</label>
-            <div class="grid grid-cols-2 gap-2">
-              <button id="gameTypeBtn_FACTOR" onclick="app.selectGameType('FACTOR')" class="py-2.5 px-2 rounded-xl text-sm font-bold border transition flex items-center justify-center space-x-2">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button id="gameTypeBtn_FACTOR" onclick="app.selectGameType('FACTOR')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
                 <i class="fa-solid fa-divide"></i><span>Factor</span>
               </button>
-              <button id="gameTypeBtn_DICE" onclick="app.selectGameType('DICE')" class="py-2.5 px-2 rounded-xl text-sm font-bold border transition flex items-center justify-center space-x-2">
+              <button id="gameTypeBtn_DICE" onclick="app.selectGameType('DICE')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
                 <i class="fa-solid fa-dice"></i><span>Three Dice</span>
+              </button>
+              <button id="gameTypeBtn_DICE12" onclick="app.selectGameType('DICE12')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-dice-d20"></i><span>Two D12</span>
               </button>
             </div>
             <p id="gameTypeDesc" class="text-xs text-slate-400 mt-2 leading-snug"></p>
@@ -476,12 +479,6 @@
 
           <!-- Timer & Roll Controls -->
           <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
-            <!-- Host Check Claim Button -->
-            <button id="hostCheckClaimBtn" onclick="app.openCheckClaimModal()" class="hidden px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition flex items-center space-x-1.5 shadow">
-              <i class="fa-solid fa-clipboard-check"></i>
-              <span>Check Claim</span>
-            </button>
-
             <!-- Host Override Roll Button -->
             <button id="hostForceRollBtn" onclick="app.hostTriggerRoll()" class="hidden px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow">
               <i class="fa-solid fa-dice"></i>
@@ -491,12 +488,6 @@
             <!-- Host Pause/Resume Button -->
             <button id="hostPauseBtn" onclick="app.togglePauseGame()" class="hidden px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition border border-slate-700">
               <i id="pauseIcon" class="fa-solid fa-pause"></i>
-            </button>
-
-            <!-- Pass Turn Button for Players -->
-            <button id="passTurnBtn" onclick="app.passTurn()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold text-xs transition flex items-center space-x-2">
-              <i class="fa-solid fa-forward"></i>
-              <span id="passBtnText">No Factors / Pass</span>
             </button>
           </div>
         </div>
@@ -532,22 +523,32 @@
             </div>
           </div>
 
-          <!-- Three Dice BINGO: workings panel -->
-          <div id="diceWorkPanel" class="hidden bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-3 max-w-md mx-auto">
+          <!-- Working / Action Panel -->
+          <div id="diceWorkPanel" class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-3 max-w-md mx-auto">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider">Your Workings</span>
-              <button onclick="app.userResetWorkings()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition">
-                <i class="fa-solid fa-rotate-left mr-1"></i>Reset
-              </button>
+              <span id="workingsTitle" class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider">Your Workings</span>
+              <div class="flex items-center space-x-2">
+                <button id="resetWorkingsBtn" onclick="app.userResetWorkings()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition flex items-center space-x-1">
+                  <i class="fa-solid fa-rotate-left"></i>
+                  <span>Reset</span>
+                </button>
+                <button id="passTurnBtn" onclick="app.passTurn()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold text-xs transition flex items-center space-x-1.5">
+                  <i class="fa-solid fa-forward"></i>
+                  <span id="passBtnText">Can't Make One / Pass</span>
+                </button>
+              </div>
             </div>
-            <div id="workNumbers" class="flex justify-center gap-3 min-h-[68px]"></div>
-            <div id="workOps" class="flex justify-center gap-2">
-              <button class="work-op" data-op="+" onclick="app.handleOpClick('+')">+</button>
-              <button class="work-op" data-op="-" onclick="app.handleOpClick('-')">&minus;</button>
-              <button class="work-op" data-op="*" onclick="app.handleOpClick('*')">&times;</button>
-              <button class="work-op" data-op="/" onclick="app.handleOpClick('/')">&divide;</button>
+
+            <div id="diceWorkControls" class="space-y-3">
+              <div id="workNumbers" class="flex justify-center gap-3 min-h-[68px]"></div>
+              <div id="workOps" class="flex justify-center gap-2">
+                <button class="work-op" data-op="+" onclick="app.handleOpClick('+')">+</button>
+                <button class="work-op" data-op="-" onclick="app.handleOpClick('-')">&minus;</button>
+                <button class="work-op" data-op="*" onclick="app.handleOpClick('*')">&times;</button>
+                <button class="work-op" data-op="/" onclick="app.handleOpClick('/')">&divide;</button>
+              </div>
+              <p id="workingsHelpText" class="text-[11px] text-slate-500 text-center">Tap a number, an operation, then another number. Combine your dice, then tap the answer on your card.</p>
             </div>
-            <p class="text-[11px] text-slate-500 text-center">Tap a number, an operation, then another number. Use all three dice exactly once, then tap the answer on your card.</p>
           </div>
 
           <!-- 5x5 Grid Container -->
@@ -605,7 +606,7 @@
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-3 flex-wrap">
-          <!-- Check Claim Button -->
+          <!-- Check Claim Button (Exclusively in Classroom Mode) -->
           <button onclick="app.openCheckClaimModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm transition shadow-lg shadow-amber-500/20 flex items-center space-x-2 border border-amber-300">
             <i class="fa-solid fa-clipboard-check text-base"></i>
             <span>CHECK PLAYER'S CLAIM</span>
@@ -659,8 +660,8 @@
             <div id="classroomDiceTiles" class="flex justify-center items-center gap-4 sm:gap-6">
               <!-- Giant dice tiles inserted via JS -->
             </div>
-            <p class="text-base sm:text-xl font-bold text-indigo-200">
-              Combine all three dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!
+            <p id="classroomDicePrompt" class="text-base sm:text-xl font-bold text-indigo-200">
+              Combine dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!
             </p>
           </div>
 
@@ -878,6 +879,14 @@
         desc: 'Three dice are rolled. Use each die exactly once with + \u2212 \u00d7 \u00f7 to make a number on your card.',
         ready: 'Get ready to combine three dice when Roll #1 begins!',
         defaultTimer: 60
+      },
+      DICE12: {
+        name: 'Two D12 BINGO',
+        icon: 'fa-dice-d20',
+        subtitle: 'Roll two 12-sided dice and combine them with + \u2212 \u00d7 \u00f7 to make a number on your 5x5 BINGO card!',
+        desc: 'Two 12-sided dice are rolled (1\u201312). Combine them using + \u2212 \u00d7 \u00f7 to make a number on your card.',
+        ready: 'Get ready to combine two 12-sided dice when Roll #1 begins!',
+        defaultTimer: 45
       }
     };
 
@@ -1000,7 +1009,7 @@
         this.gameStarted = false;
         this.roundNumber = 0;
         this.currentTarget = null;
-        this.gameType = 'FACTOR'; // 'FACTOR' or 'DICE'
+        this.gameType = 'FACTOR'; // 'FACTOR', 'DICE', or 'DICE12'
         this.currentDice = [];
         this.activeDice = [];
         this.firstIdx = null;
@@ -1154,7 +1163,7 @@
         Object.keys(GAME_TYPES).forEach(key => {
           const btn = document.getElementById('gameTypeBtn_' + key);
           if (!btn) return;
-          btn.className = 'py-2.5 px-2 rounded-xl text-sm font-bold border transition flex items-center justify-center space-x-2 ' +
+          btn.className = 'py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5 ' +
             (key === this.gameType
               ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-600/30'
               : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-indigo-500/50');
@@ -1246,7 +1255,6 @@
         document.getElementById('lobbyTimerConfig').classList.remove('hidden');
         document.getElementById('hostForceRollBtn').classList.remove('hidden');
         document.getElementById('hostPauseBtn').classList.remove('hidden');
-        document.getElementById('hostCheckClaimBtn').classList.remove('hidden');
 
         this.playersMap = {};
         this.playersMap[this.myPeerId] = {
@@ -1291,7 +1299,6 @@
         document.getElementById('lobbyTimerConfig').classList.add('hidden');
         document.getElementById('hostForceRollBtn').classList.add('hidden');
         document.getElementById('hostPauseBtn').classList.add('hidden');
-        document.getElementById('hostCheckClaimBtn').classList.add('hidden');
 
         this.playersMap = {};
         this.playersMap[this.myPeerId] = {
@@ -1711,7 +1718,6 @@
 
         document.getElementById('hostForceRollBtn').classList.remove('hidden');
         document.getElementById('hostPauseBtn').classList.remove('hidden');
-        document.getElementById('hostCheckClaimBtn').classList.remove('hidden');
 
         this.setupGameplayUI();
         this.startRoundTimer();
@@ -1743,7 +1749,7 @@
         const gt = GAME_TYPES[this.gameType];
         document.getElementById('classroomGameTitle').textContent = `${gt.name} Mode`;
 
-        const isDice = this.gameType === 'DICE';
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
         document.getElementById('classroomFactorBox').classList.toggle('hidden', isDice);
         document.getElementById('classroomDiceBox').classList.toggle('hidden', !isDice);
 
@@ -1755,10 +1761,18 @@
         document.getElementById('classroomRoundNum').textContent = `#${this.roundNumber}`;
         document.getElementById('classroomTimerText').textContent = `${this.timerRemaining}s`;
 
-        if (this.gameType === 'DICE') {
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
+        if (isDice) {
           document.getElementById('classroomDiceTiles').innerHTML = this.currentDice.map(v =>
             `<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white text-slate-900 text-5xl sm:text-7xl font-black flex items-center justify-center shadow-2xl border-4 border-indigo-400 font-mono">${v}</div>`
           ).join('');
+
+          const promptEl = document.getElementById('classroomDicePrompt');
+          if (promptEl) {
+            promptEl.innerHTML = this.gameType === 'DICE12'
+              ? 'Combine both 12-sided dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!'
+              : 'Combine all three dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!';
+          }
         } else {
           document.getElementById('classroomTargetNum').textContent = this.currentTarget;
           document.getElementById('classroomFactorPrompt').innerHTML =
@@ -1798,6 +1812,9 @@
         if (this.gameType === 'DICE') {
           this.currentDice = [0, 0, 0].map(() => Math.floor(Math.random() * 6) + 1);
           this.currentTarget = null;
+        } else if (this.gameType === 'DICE12') {
+          this.currentDice = [0, 0].map(() => Math.floor(Math.random() * 12) + 1);
+          this.currentTarget = null;
         } else {
           this.currentTarget = this.getRandomTargetNumber();
           this.currentDice = [];
@@ -1822,6 +1839,19 @@
       reachableValues(dice) {
         const results = new Set();
         const ops = ['+', '-', '*', '/'];
+
+        if (dice.length === 2) {
+          const perms = [[0, 1], [1, 0]];
+          perms.forEach(p => {
+            const v1 = dice[p[0]], v2 = dice[p[1]];
+            ops.forEach(op => {
+              const r = this.evalCalc(v1, v2, op);
+              if (r !== null && Number.isInteger(r) && r > 0) results.add(r);
+            });
+          });
+          return results;
+        }
+
         const perms = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
         perms.forEach(p => {
           const v1 = dice[p[0]], v2 = dice[p[1]], v3 = dice[p[2]];
@@ -1839,9 +1869,16 @@
       }
 
       generateBoardNumbers() {
+        const badNumbers = [26, 29, 31, 34];
         const pool = Array.from({ length: 36 }, (_, i) => i + 1);
-        const shuffled = [...pool].sort(() => 0.5 - Math.random());
-        const nums = shuffled.slice(0, 24);
+        let nums;
+        
+        // Ensure that BINGO cards NEVER contain more than ONE of {26, 29, 31, 34}
+        do {
+          const shuffled = [...pool].sort(() => 0.5 - Math.random());
+          nums = shuffled.slice(0, 24);
+        } while (nums.filter(n => badNumbers.includes(n)).length > 1);
+
         nums.splice(FREE_INDEX, 0, null);
         return nums;
       }
@@ -1892,27 +1929,38 @@
       }
 
       applyGameTypeLayout() {
-        const dice = this.gameType === 'DICE';
-        document.getElementById('targetRollDisplay').classList.toggle('hidden', dice);
-        document.getElementById('diceRollDisplay').classList.toggle('hidden', !dice);
-        document.getElementById('diceWorkPanel').classList.toggle('hidden', !dice);
-        document.getElementById('passBtnText').textContent = dice ? "Can't Make One / Pass" : 'No Factors / Pass';
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
+        document.getElementById('targetRollDisplay').classList.toggle('hidden', isDice);
+        document.getElementById('diceRollDisplay').classList.toggle('hidden', !isDice);
+        
+        // Keep working/action panel visible across all modes
+        document.getElementById('diceWorkPanel').classList.remove('hidden');
+        document.getElementById('resetWorkingsBtn').classList.toggle('hidden', !isDice);
+        document.getElementById('diceWorkControls').classList.toggle('hidden', !isDice);
+        document.getElementById('workingsTitle').textContent = isDice ? 'Your Workings' : 'Your Action';
+        document.getElementById('passBtnText').textContent = isDice ? "Can't Make One / Pass" : 'No Factors / Pass';
       }
 
       defaultHint() {
-        return this.gameType === 'DICE'
-          ? 'Combine all three dice to make a number on your card, then tap it!'
-          : 'Tap ONE card number that divides evenly into the target!';
+        if (this.gameType === 'DICE') {
+          return 'Combine all three dice to make a number on your card, then tap it!';
+        } else if (this.gameType === 'DICE12') {
+          return 'Combine the two 12-sided dice to make a number on your card, then tap it!';
+        }
+        return 'Tap ONE card number that divides evenly into the target!';
       }
 
       updateTargetDisplay() {
         document.getElementById('roundCounter').textContent = `#${this.roundNumber}`;
         const prompt = document.getElementById('targetPrompt');
-        if (this.gameType === 'DICE') {
+        
+        if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
           document.getElementById('diceRollTiles').innerHTML = this.currentDice.map(v =>
-            `<div class="w-16 h-16 rounded-xl bg-white text-slate-900 text-3xl font-black flex items-center justify-center shadow-lg border-2 border-indigo-300">${v}</div>`
+            `<div class="w-16 h-16 rounded-xl bg-white text-slate-900 text-3xl font-black flex items-center justify-center shadow-lg border-2 border-indigo-300 font-mono">${v}</div>`
           ).join('');
-          prompt.innerHTML = 'Make a number with <span class="text-indigo-400">all 3 dice</span>';
+          prompt.innerHTML = this.gameType === 'DICE12'
+            ? 'Make a number with <span class="text-indigo-400">both 12-sided dice</span>'
+            : 'Make a number with <span class="text-indigo-400">all 3 dice</span>';
         } else {
           document.getElementById('targetNumber').textContent = this.currentTarget;
           prompt.innerHTML = `Find a Factor of <span class="text-indigo-400">${esc(this.currentTarget)}</span>`;
@@ -1922,6 +1970,8 @@
       renderBingoCard() {
         const grid = document.getElementById('bingoGrid');
         grid.innerHTML = '';
+
+        const isDiceMode = this.gameType === 'DICE' || this.gameType === 'DICE12';
 
         this.boardNumbers.forEach((val, idx) => {
           const btn = document.createElement('button');
@@ -1934,7 +1984,7 @@
             return;
           }
 
-          const dicePick = this.gameType === 'DICE' && !isClaimed && !this.claimedThisRound &&
+          const dicePick = isDiceMode && !isClaimed && !this.claimedThisRound &&
             this.activeDice.length === 1 && !this.isCalculating && this.activeDice[0].v === val;
 
           btn.className = `card-cell relative rounded-xl font-black text-xl sm:text-2xl flex items-center justify-center transition-all duration-200 border shadow-md ${dicePick ? 'cell-highlight ' : ''}${
@@ -2005,7 +2055,7 @@
 
       handleCellClick(index, value) {
         if (value === null || this.boardClaimed[index]) return;
-        const isDice = this.gameType === 'DICE';
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
         if (isDice ? this.currentDice.length === 0 : !this.currentTarget) return;
 
         if (this.claimedThisRound) {
@@ -2019,7 +2069,8 @@
         if (isDice) {
           if (this.activeDice.length !== 1 || this.isCalculating) {
             sound.playWrongBuzz();
-            this.updateRoundHint('Use all three dice first to make a single number.', 'text-amber-400');
+            const needed = this.gameType === 'DICE12' ? 'both' : 'all three';
+            this.updateRoundHint(`Use ${needed} dice first to make a single number.`, 'text-amber-400');
             return;
           }
           valid = this.activeDice[0].v === value;
@@ -2075,21 +2126,30 @@
       }
 
       userResetWorkings() {
-        if (this.claimedThisRound || this.gameType !== 'DICE') return;
+        if (this.claimedThisRound || (this.gameType !== 'DICE' && this.gameType !== 'DICE12')) return;
         this.resetWorkings();
         this.renderBingoCard();
         this.updateRoundHint();
       }
 
       canWork() {
-        return this.gameType === 'DICE' && this.gameStarted && !this.claimedThisRound &&
-               !this.isCalculating && this.currentDice.length === 3;
+        const requiredDiceCount = this.gameType === 'DICE12' ? 2 : 3;
+        return (this.gameType === 'DICE' || this.gameType === 'DICE12') &&
+               this.gameStarted && !this.claimedThisRound &&
+               !this.isCalculating && this.currentDice.length === requiredDiceCount;
       }
 
       renderWorkings() {
         const numbers = document.getElementById('workNumbers');
         if (!numbers) return;
         const canAct = this.canWork();
+
+        const helpText = document.getElementById('workingsHelpText');
+        if (helpText) {
+          helpText.textContent = this.gameType === 'DICE12'
+            ? 'Tap a number, an operation, then the other number. Combine both 12-sided dice, then tap the answer on your card.'
+            : 'Tap a number, an operation, then another number. Use all three dice exactly once, then tap the answer on your card.';
+        }
 
         numbers.innerHTML = '';
         this.activeDice.forEach((d, i) => {
@@ -2459,7 +2519,7 @@
             if (!this.gameStarted || ai.movedThisRound) return;
 
             let unclaimedIndices = ai.claimed.map((c, i) => c ? null : i).filter(v => v !== null);
-            if (this.gameType === 'DICE') {
+            if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
               const reach = this.reachableValues(this.currentDice);
               unclaimedIndices = unclaimedIndices.filter(i => ai.numbers && ai.numbers[i] !== null && reach.has(ai.numbers[i]));
             }
@@ -2612,8 +2672,8 @@
           const n = item.val;
           item.validRounds = [];
           this.rollHistory.forEach(roll => {
-            if (this.gameType === 'DICE') {
-              if (roll.dice && roll.dice.length >= 3 && this.reachableValues(roll.dice).has(n)) {
+            if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
+              if (roll.dice && roll.dice.length >= 2 && this.reachableValues(roll.dice).has(n)) {
                 item.validRounds.push(roll);
               }
             } else {
@@ -2731,7 +2791,7 @@
           if (idx in bestMatching) {
             const matchedRound = bestMatching[idx];
             const roll = item.validRounds.find(r => r.round === matchedRound);
-            const detail = this.gameType === 'DICE'
+            const detail = (this.gameType === 'DICE' || this.gameType === 'DICE12')
               ? `Matched in Round #${matchedRound} (Dice: [${roll.dice.join(', ')}])`
               : `Matched in Round #${matchedRound} (Target: ${roll.target})`;
             results.push({ input: item.val, valid: true, detail: detail });
