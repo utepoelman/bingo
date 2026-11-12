@@ -174,6 +174,7 @@
         color: #000000;
       }
       .grid-12 .print-cell { font-size: 8.5pt; }
+      .print-hint { font-size: 6.5pt; text-align: center; color: #444; margin-top: 2px; }
       .print-cell-free {
         background: #e2e8f0 !important;
         font-size: 7.5pt;
@@ -299,7 +300,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Type</label>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 gap-2">
               <button id="gameTypeBtn_FACTOR" onclick="app.selectGameType('FACTOR')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
                 <i class="fa-solid fa-divide"></i><span>Factor</span>
               </button>
@@ -308,6 +309,9 @@
               </button>
               <button id="gameTypeBtn_DICE12" onclick="app.selectGameType('DICE12')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
                 <i class="fa-solid fa-dice-d20"></i><span>Two D12</span>
+              </button>
+              <button id="gameTypeBtn_PROB" onclick="app.selectGameType('PROB')" class="py-2.5 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-dice-two"></i><span>Probability</span>
               </button>
             </div>
             <p id="gameTypeDesc" class="text-xs text-slate-400 mt-2 leading-snug"></p>
@@ -517,6 +521,7 @@
             <div class="flex items-center space-x-2">
               <h3 class="font-bold text-lg text-white">Your 5x5 Card</h3>
               <span id="playerScoreBadge" class="text-xs font-extrabold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30">0 Lines</span>
+              <button id="probHelpBtn" type="button" onclick="app.openProbHelp()" class="hidden px-2.5 py-1 rounded-full bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-200 text-xs font-bold border border-indigo-500/30 transition"><i class="fa-solid fa-circle-question mr-1"></i>Help</button>
             </div>
             <div class="flex space-x-1 text-indigo-400 text-sm font-extrabold tracking-widest">
               <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
@@ -549,6 +554,23 @@
               </div>
               <p id="workingsHelpText" class="text-[11px] text-slate-500 text-center">Tap a number, an operation, then another number. Combine your dice, then tap the answer on your card.</p>
             </div>
+          </div>
+
+          <!-- Probability BINGO: card set-up phase -->
+          <div id="probSetupPanel" class="hidden max-w-md mx-auto space-y-3">
+            <div class="bg-slate-950/70 border border-indigo-500/30 rounded-xl p-3 space-y-2">
+              <p class="text-xs text-slate-300 leading-relaxed">Build your own card! Type a <strong class="text-white">total from 2 to 12</strong> into each of the 24 squares. You may use the same number more than once.</p>
+              <button type="button" onclick="app.openProbHelp()" class="w-full py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-200 text-xs font-bold border border-indigo-500/30 transition"><i class="fa-solid fa-circle-question mr-1.5"></i>Not sure which numbers to pick?</button>
+            </div>
+            <div id="probSetupGrid" class="grid grid-cols-5 gap-2 sm:gap-3 aspect-square"></div>
+            <div class="flex items-center justify-between gap-3">
+              <span id="probFilledCount" class="text-xs font-bold text-slate-400">0 / 24 squares filled</span>
+              <button id="probLockBtn" type="button" onclick="app.lockProbCard()" disabled class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-extrabold transition"><i class="fa-solid fa-lock mr-1.5"></i>Lock in my card</button>
+            </div>
+          </div>
+          <div id="probLockedBar" class="hidden max-w-md mx-auto bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
+            <span id="probLockedText" class="text-xs font-bold text-emerald-300"></span>
+            <button id="probBeginBtn" type="button" onclick="app.probBeginRolling()" class="hidden shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-extrabold transition"><i class="fa-solid fa-dice mr-1"></i>Start Rolling</button>
           </div>
 
           <!-- 5x5 Grid Container -->
@@ -821,6 +843,22 @@
         </div>
 
         <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Card Type</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col items-center justify-center p-3 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-indigo-500 transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-950/30">
+              <input type="radio" name="printContent" value="numbers" checked class="sr-only">
+              <span class="text-base font-black text-white">Numbered</span>
+              <span class="text-[11px] text-slate-400 mt-1">Factor / Dice games</span>
+            </label>
+            <label class="flex flex-col items-center justify-center p-3 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-indigo-500 transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-950/30">
+              <input type="radio" name="printContent" value="blank" class="sr-only">
+              <span class="text-base font-black text-white">Blank</span>
+              <span class="text-[11px] text-slate-400 mt-1">Probability BINGO</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
           <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Number of Cards</label>
           <select id="selectPrintQuantity" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-indigo-500">
             <option value="6">6 Cards (1 Sheet at 6/page)</option>
@@ -839,6 +877,21 @@
           <span>Generate & Print</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- POPUP MODAL: PROBABILITY HELP (local to this player's screen) -->
+  <div id="modalProbHelp" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-indigo-500/40 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-black text-white"><i class="fa-solid fa-dice-two text-indigo-400 mr-2"></i>Choosing your numbers</h3>
+        <button onclick="app.closeProbHelp()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-slate-300 leading-relaxed">Two standard dice are rolled and added together. The smallest possible total is <strong class="text-white">1 + 1 = 2</strong> and the largest is <strong class="text-white">6 + 6 = 12</strong>, so <strong class="text-amber-300">only the numbers 2 to 12</strong> can ever be the total. Numbers like 1 or 13 can never come up!</p>
+      <p class="text-xs text-slate-400">There are 36 equally likely outcomes (6 &times; 6). Here is how many of them give each total:</p>
+      <div id="probHelpRows" class="space-y-1.5"></div>
+      <p class="text-xs text-slate-400 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i>Think about it: you can claim only <strong class="text-slate-200">one square per round</strong>, and you may write the same total on several squares. Which totals will you choose, and how many of each?</p>
+      <button onclick="app.closeProbHelp()" class="w-full py-3 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition">Got it</button>
     </div>
   </div>
 
@@ -910,6 +963,14 @@
         desc: 'Two 12-sided dice are rolled (1\u201312). Combine them using + \u2212 \u00d7 \u00f7 to make a number on your card.',
         ready: 'Get ready to combine two 12-sided dice when Roll #1 begins!',
         defaultTimer: 45
+      },
+      PROB: {
+        name: 'Probability BINGO',
+        icon: 'fa-dice-two',
+        subtitle: 'Build your own card, then roll two dice and claim the totals!',
+        desc: 'Everyone fills in their own card with 24 totals from 2 to 12. Two standard dice are rolled and added. Claim one matching square per round.',
+        ready: 'Get ready to build your card using what you know about probability!',
+        defaultTimer: 30
       }
     };
 
@@ -1048,6 +1109,8 @@
         this.claimedThisRound = false;
         this.joinTimeout = null;
         this.joinConfirmed = false;
+        this.probSetup = false;   // Probability BINGO: card-building phase before the first roll
+        this.probLocked = false;  // this player has locked in their own card
 
         // History of rolled numbers for classroom mode & claim verification
         this.rollHistory = []; // items: { round: number, target: number|null, dice: array|null }
@@ -1167,6 +1230,8 @@
         this.finishOrder = [];
         this.celebratedLines = {};
         this.rollHistory = [];
+        this.probSetup = false;
+        this.probLocked = false;
       }
 
       selectGameType(type) {
@@ -1221,6 +1286,7 @@
         document.getElementById('winModal').classList.add('hidden');
         document.getElementById('modalCheckClaim').classList.add('hidden');
         document.getElementById('modalPrintCards').classList.add('hidden');
+        document.getElementById('modalProbHelp').classList.add('hidden');
         this.hideAllViews();
         this.updateSoundUI();
         this.updateStatus('Offline', 'bg-slate-500');
@@ -1545,6 +1611,17 @@
           case 'BINGO_WIN':
             if (!this.isHost) this.handleBingoWin(msg);
             break;
+
+          case 'PROB_READY':
+            if (this.isHost && this.playersMap[msg.senderId]) {
+              this.playersMap[msg.senderId].probReady = true;
+              this.updateProbStatus();
+            }
+            break;
+
+          case 'PROB_BEGIN':
+            if (!this.isHost) this.handleProbBegin(msg);
+            break;
         }
       }
 
@@ -1671,16 +1748,25 @@
         this.finishOrder = [];
         this.celebratedLines = {};
         this.rollHistory = [];
-        this.generateRoll();
+        this.probSetup = this.isProb();
+        if (this.probSetup) {
+          this.roundNumber = 0;
+          this.currentDice = [];
+          this.currentTarget = null;
+        } else {
+          this.generateRoll();
+        }
 
         Object.keys(this.playersMap).forEach(id => {
           if (this.playersMap[id]) {
             this.playersMap[id].movedThisRound = false;
+            this.playersMap[id].probReady = false;
           }
         });
 
         this.broadcastToAll({
           type: 'GAME_STARTED',
+          probSetup: this.probSetup,
           soundEnabled: this.soundEnabled,
           gameType: this.gameType,
           roundNumber: this.roundNumber,
@@ -1690,7 +1776,7 @@
         });
 
         this.setupGameplayUI();
-        this.startRoundTimer();
+        if (!this.probSetup) this.startRoundTimer();
       }
 
       handleGameStartSignal(msg) {
@@ -1700,7 +1786,8 @@
         this.currentTarget = msg.currentTarget;
         this.currentDice = msg.currentDice || [];
         this.timerDuration = msg.timerDuration || 30;
-        this.rollHistory = [{
+        this.probSetup = !!msg.probSetup;
+        this.rollHistory = this.probSetup ? [] : [{
           round: this.roundNumber,
           target: this.currentTarget,
           dice: [...this.currentDice]
@@ -1713,7 +1800,7 @@
         });
 
         this.setupGameplayUI();
-        this.startRoundTimer();
+        if (!this.probSetup) this.startRoundTimer();
       }
 
       startOfflinePractice() {
@@ -1739,13 +1826,20 @@
         this.finishOrder = [];
         this.celebratedLines = {};
         this.rollHistory = [];
-        this.generateRoll();
+        this.probSetup = this.isProb();
+        if (this.probSetup) {
+          this.roundNumber = 0;
+          this.currentDice = [];
+          this.currentTarget = null;
+        } else {
+          this.generateRoll();
+        }
 
         document.getElementById('hostForceRollBtn').classList.remove('hidden');
         document.getElementById('hostPauseBtn').classList.remove('hidden');
 
         this.setupGameplayUI();
-        this.startRoundTimer();
+        if (!this.probSetup) this.startRoundTimer();
       }
 
       /* CLASSROOM PROJECTOR SCREEN MODE */
@@ -1802,7 +1896,7 @@
         const gt = GAME_TYPES[this.gameType];
         document.getElementById('classroomGameTitle').textContent = `${gt.name} Mode`;
 
-        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12' || this.gameType === 'PROB';
         document.getElementById('classroomFactorBox').classList.toggle('hidden', isDice);
         document.getElementById('classroomDiceBox').classList.toggle('hidden', !isDice);
 
@@ -1815,15 +1909,19 @@
         document.getElementById('classroomRoundNum').textContent = `#${this.roundNumber}`;
         document.getElementById('classroomTimerText').textContent = `${this.timerRemaining}s`;
 
-        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
+        const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12' || this.gameType === 'PROB';
         if (isDice) {
           document.getElementById('classroomDiceTiles').innerHTML = this.currentDice.map(v =>
             `<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white text-slate-900 text-5xl sm:text-7xl font-black flex items-center justify-center shadow-2xl border-4 border-indigo-400 font-mono">${v}</div>`
-          ).join('');
+          ).join('') + ((this.gameType === 'PROB' && this.currentDice.length === 2)
+            ? `<div class="text-5xl sm:text-7xl font-black text-slate-400">=</div><div class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-amber-400 text-slate-900 text-5xl sm:text-7xl font-black flex items-center justify-center shadow-2xl border-4 border-amber-200 font-mono">${this.currentDice[0] + this.currentDice[1]}</div>`
+            : '');
 
           const promptEl = document.getElementById('classroomDicePrompt');
           if (promptEl) {
-            promptEl.innerHTML = this.gameType === 'DICE12'
+            promptEl.innerHTML = this.gameType === 'PROB'
+              ? 'Add the two dice. If the <span class="text-amber-400 font-extrabold">total</span> is on your card, cross off <span class="text-amber-400 font-extrabold">ONE</span> square showing it!'
+              : this.gameType === 'DICE12'
               ? 'Combine both 12-sided dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!'
               : 'Combine all three dice with <span class="text-amber-400 font-extrabold">+ &minus; &times; &divide;</span> to make a number on your card!';
           }
@@ -1848,7 +1946,7 @@
             return `
               <div class="shrink-0 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-center shadow">
                 <span class="text-[10px] font-bold text-slate-500 block">R#${item.round}</span>
-                <span class="text-xs font-black text-indigo-300 font-mono">[${item.dice.join(', ')}]</span>
+                <span class="text-xs font-black text-indigo-300 font-mono">[${item.dice.join(', ')}]${this.gameType === 'PROB' ? ' = ' + (item.dice[0] + item.dice[1]) : ''}</span>
               </div>
             `;
           } else {
@@ -1868,6 +1966,9 @@
           this.currentTarget = null;
         } else if (this.gameType === 'DICE12') {
           this.currentDice = [0, 0].map(() => Math.floor(Math.random() * 12) + 1);
+          this.currentTarget = null;
+        } else if (this.gameType === 'PROB') {
+          this.currentDice = [0, 0].map(() => Math.floor(Math.random() * 6) + 1);
           this.currentTarget = null;
         } else {
           this.currentTarget = this.getRandomTargetNumber();
@@ -1954,7 +2055,8 @@
         this.hideAllViews();
         document.getElementById('viewGameplay').classList.remove('hidden');
 
-        this.boardNumbers = this.generateBoardNumbers();
+        this.probLocked = false;
+        this.boardNumbers = this.isProb() ? this.blankBoard() : this.generateBoardNumbers();
         this.boardClaimed = this.newClaimed();
         this.playerScore = 0;
         this.myReportedLines = 0;
@@ -1962,7 +2064,7 @@
 
         if (this.mode === 'OFFLINE') {
           ['AI_1', 'AI_2', 'AI_3'].forEach(id => {
-            if (this.playersMap[id]) this.playersMap[id].numbers = this.generateBoardNumbers();
+            if (this.playersMap[id]) this.playersMap[id].numbers = this.isProb() ? this.randomProbCard() : this.generateBoardNumbers();
           });
         }
 
@@ -1980,22 +2082,29 @@
         this.renderOpponentMatrices();
         this.updateTargetDisplay();
         this.updateRoundHint();
+        this.resetProbSetupGrid();
+        this.updateProbPhaseUI();
       }
 
       applyGameTypeLayout() {
         const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
-        document.getElementById('targetRollDisplay').classList.toggle('hidden', isDice);
-        document.getElementById('diceRollDisplay').classList.toggle('hidden', !isDice);
+        const showDice = isDice || this.isProb();
+        document.getElementById('targetRollDisplay').classList.toggle('hidden', showDice);
+        document.getElementById('diceRollDisplay').classList.toggle('hidden', !showDice);
         
         // Keep working/action panel visible across all modes
         document.getElementById('diceWorkPanel').classList.remove('hidden');
         document.getElementById('resetWorkingsBtn').classList.toggle('hidden', !isDice);
         document.getElementById('diceWorkControls').classList.toggle('hidden', !isDice);
         document.getElementById('workingsTitle').textContent = isDice ? 'Your Workings' : 'Your Action';
-        document.getElementById('passBtnText').textContent = isDice ? "Can't Make One / Pass" : 'No Factors / Pass';
+        document.getElementById('passBtnText').textContent = this.isProb() ? 'No Match / Pass' : (isDice ? "Can't Make One / Pass" : 'No Factors / Pass');
       }
 
       defaultHint() {
+        if (this.isProb()) {
+          if (this.probSetup) return this.probLocked ? 'Card locked in! Waiting for the host to start the rolls.' : 'Fill in all 24 squares, then lock in your card!';
+          return 'Add the two dice, then tap ONE square on your card showing the total!';
+        }
         if (this.gameType === 'DICE') {
           return 'Combine all three dice to make a number on your card, then tap it!';
         } else if (this.gameType === 'DICE12') {
@@ -2006,6 +2115,16 @@
 
       updateTargetDisplay() {
         document.getElementById('roundCounter').textContent = `#${this.roundNumber}`;
+        if (this.isProb()) {
+          const d = this.currentDice;
+          const tile = 'w-16 h-16 rounded-xl bg-white text-slate-900 text-3xl font-black flex items-center justify-center shadow-lg border-2 border-indigo-300 font-mono';
+          document.getElementById('diceRollTiles').innerHTML = d.map(v => `<div class="${tile}">${v}</div>`).join('') +
+            (d.length === 2 ? `<span class="text-2xl font-black text-slate-400">=</span><div class="w-16 h-16 rounded-xl bg-amber-400 text-slate-900 text-3xl font-black flex items-center justify-center shadow-lg border-2 border-amber-200 font-mono">${d[0] + d[1]}</div>` : '');
+          document.getElementById('targetPrompt').innerHTML = (this.probSetup || d.length !== 2)
+            ? 'Build your <span class="text-indigo-400">card</span>'
+            : `Total: <span class="text-indigo-400">${d[0] + d[1]}</span>`;
+          return;
+        }
         const prompt = document.getElementById('targetPrompt');
         
         if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
@@ -2105,12 +2224,14 @@
           }
           container.appendChild(card);
         });
+        if (this.isProb()) this.updateProbStatus();
       }
 
       handleCellClick(index, value) {
         if (value === null || this.boardClaimed[index]) return;
         const isDice = this.gameType === 'DICE' || this.gameType === 'DICE12';
-        if (isDice ? this.currentDice.length === 0 : !this.currentTarget) return;
+        const isProb = this.gameType === 'PROB';
+        if ((isDice || isProb) ? this.currentDice.length === 0 : !this.currentTarget) return;
 
         if (this.claimedThisRound) {
           sound.playWrongBuzz();
@@ -2129,6 +2250,10 @@
           }
           valid = this.activeDice[0].v === value;
           if (!valid) failMsg = `You made ${this.activeDice[0].v}, not ${value}. Reset to try again.`;
+        } else if (isProb) {
+          const total = this.currentDice[0] + this.currentDice[1];
+          valid = total === value;
+          if (!valid) failMsg = `The total is ${total}, not ${value}.`;
         } else {
           valid = this.currentTarget % value === 0;
         }
@@ -2140,7 +2265,9 @@
           this.renderBingoCard();
           this.renderWorkings();
           this.updateRoundHint(
-            isDice
+            isProb
+              ? `Nice! The total was ${value} and you crossed off one ${value}. Wait for the next roll.`
+              : isDice
               ? `Nice! You made ${value} with your dice. Wait for the next roll.`
               : `Nice! ${value} is a factor of ${this.currentTarget}. Wait for the next roll.`,
             'text-emerald-400');
@@ -2495,6 +2622,7 @@
       hostTriggerRoll() {
         if (!this.isHost && this.mode !== 'OFFLINE' && this.mode !== 'CLASSROOM') return;
         if (this.mode === 'CLASSROOM' && this.classroomAwaitingStart) return;
+        if (this.probSetup) return;
 
         Object.keys(this.playersMap).forEach(id => {
           if (this.playersMap[id]) {
@@ -2577,6 +2705,9 @@
             if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
               const reach = this.reachableValues(this.currentDice);
               unclaimedIndices = unclaimedIndices.filter(i => ai.numbers && ai.numbers[i] !== null && reach.has(ai.numbers[i]));
+            } else if (this.gameType === 'PROB') {
+              const tot = this.currentDice[0] + this.currentDice[1];
+              unclaimedIndices = unclaimedIndices.filter(i => ai.numbers && ai.numbers[i] === tot);
             }
             if (unclaimedIndices.length > 0 && Math.random() > 0.3) {
               const randomIndex = unclaimedIndices[Math.floor(Math.random() * unclaimedIndices.length)];
@@ -2591,8 +2722,217 @@
         });
       }
 
+      /* PROBABILITY BINGO: own-card set-up, help popup, start of rolling */
+      isProb() { return this.gameType === 'PROB'; }
+
+      blankBoard() {
+        const b = Array(25).fill(0);
+        b[FREE_INDEX] = null;
+        return b;
+      }
+
+      randomProbCard() {
+        const nums = Array.from({ length: 24 }, () => Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2);
+        nums.splice(FREE_INDEX, 0, null);
+        return nums;
+      }
+
+      probInputs() {
+        return Array.from(document.querySelectorAll('#probSetupGrid input'));
+      }
+
+      buildProbSetupGrid() {
+        const g = document.getElementById('probSetupGrid');
+        if (g.dataset.built) return;
+        g.dataset.built = '1';
+        g.innerHTML = '';
+        for (let i = 0; i < 25; i++) {
+          if (i === FREE_INDEX) {
+            g.insertAdjacentHTML('beforeend', '<div class="rounded-xl flex flex-col items-center justify-center bg-gradient-to-tr from-amber-500 to-yellow-400 border border-amber-300 text-slate-900 scale-95"><i class="fa-solid fa-star text-lg"></i><span class="text-[10px] font-black tracking-widest">FREE</span></div>');
+            continue;
+          }
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.inputMode = 'numeric';
+          inp.maxLength = 2;
+          inp.placeholder = '?';
+          inp.autocomplete = 'off';
+          inp.className = 'w-full h-full min-w-0 text-center rounded-xl bg-slate-950 border border-slate-700 text-xl sm:text-2xl font-black text-white focus:outline-none focus:border-indigo-400 placeholder-slate-700';
+          inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/\D/g, '');
+            this.probInputChanged(inp);
+          });
+          inp.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); this.probFocusNext(inp); }
+          });
+          g.appendChild(inp);
+        }
+      }
+
+      resetProbSetupGrid() {
+        if (!this.isProb()) return;
+        this.buildProbSetupGrid();
+        this.probInputs().forEach(inp => {
+          inp.value = '';
+          inp.classList.remove('border-rose-500', 'border-emerald-500/60');
+        });
+        this.updateProbCount();
+      }
+
+      probValid(v) {
+        const n = parseInt(v, 10);
+        return /^\d{1,2}$/.test(v) && n >= 2 && n <= 12;
+      }
+
+      probFocusNext(inp) {
+        const all = this.probInputs();
+        const next = all[all.indexOf(inp) + 1];
+        if (next) next.focus(); else inp.blur();
+      }
+
+      probInputChanged(inp) {
+        const v = inp.value;
+        const bad = v !== '' && v !== '1' && !this.probValid(v);
+        inp.classList.toggle('border-rose-500', bad);
+        inp.classList.toggle('border-emerald-500/60', this.probValid(v));
+        if (this.probValid(v) && (v.length === 2 || parseInt(v, 10) >= 2 && parseInt(v, 10) <= 9)) this.probFocusNext(inp);
+        this.updateProbCount();
+      }
+
+      updateProbCount() {
+        const n = this.probInputs().filter(i => this.probValid(i.value)).length;
+        document.getElementById('probFilledCount').textContent = `${n} / 24 squares filled`;
+        document.getElementById('probLockBtn').disabled = n !== 24;
+      }
+
+      lockProbCard() {
+        if (!this.isProb() || this.probLocked) return;
+        const vals = this.probInputs().map(i => i.value.trim());
+        if (vals.length !== 24 || !vals.every(v => this.probValid(v))) {
+          alert('Please fill all 24 squares with numbers from 2 to 12.');
+          return;
+        }
+        const nums = vals.map(v => parseInt(v, 10));
+        nums.splice(FREE_INDEX, 0, null);
+        this.boardNumbers = nums;
+        this.probLocked = true;
+        sound.playCorrectChime();
+
+        const me = this.playersMap[this.selfKey()];
+        if (me) me.probReady = true;
+        if (!this.isHost) this.broadcastToAll({ type: 'PROB_READY' });
+
+        this.renderBingoCard();
+        this.updateProbPhaseUI();
+        this.updateRoundHint();
+        if (this.mode === 'OFFLINE' && this.probSetup) this.probBeginRolling();
+      }
+
+      updateProbPhaseUI() {
+        const prob = this.isProb();
+        const panel = prob && !this.probLocked;
+        const locked = prob && this.probSetup && this.probLocked;
+        const vis = (id, show) => { const e = document.getElementById(id); if (e) e.classList.toggle('hidden', !show); };
+        vis('probHelpBtn', prob);
+        vis('probSetupPanel', panel);
+        vis('probLockedBar', locked);
+        vis('bingoGrid', !panel);
+        vis('diceWorkPanel', !(panel || (prob && this.probSetup)));
+        if (prob && this.probSetup) {
+          document.getElementById('timerSeconds').textContent = '--';
+          document.getElementById('timerProgressBar').style.width = '100%';
+        }
+        if (panel) this.buildProbSetupGrid();
+        this.updateProbStatus();
+      }
+
+      updateProbStatus() {
+        const text = document.getElementById('probLockedText');
+        const btn = document.getElementById('probBeginBtn');
+        if (!text || !btn || !(this.isProb() && this.probSetup && this.probLocked)) return;
+        if (this.mode === 'HOST') {
+          const ids = Object.keys(this.playersMap);
+          const ready = ids.filter(id => this.playersMap[id].probReady).length;
+          text.textContent = `Card locked in! ${ready} / ${ids.length} players ready.`;
+          btn.classList.remove('hidden');
+        } else {
+          text.textContent = 'Card locked in! Waiting for the host to start the rolls...';
+          btn.classList.add('hidden');
+        }
+      }
+
+      probBeginRolling() {
+        if (!this.isHost || !this.isProb() || !this.probSetup || !this.probLocked) return;
+        if (this.mode === 'HOST') {
+          const notReady = Object.keys(this.playersMap).filter(id => !this.playersMap[id].probReady);
+          if (notReady.length && !confirm(`${notReady.length} player(s) have not locked in their card yet. Start rolling anyway?`)) return;
+        }
+        this.probSetup = false;
+        this.roundNumber = 1;
+        this.rollHistory = [];
+        this.generateRoll();
+        Object.keys(this.playersMap).forEach(id => {
+          if (this.playersMap[id]) this.playersMap[id].movedThisRound = false;
+        });
+        if (this.mode === 'HOST') {
+          this.broadcastToAll({
+            type: 'PROB_BEGIN',
+            soundEnabled: this.soundEnabled,
+            roundNumber: this.roundNumber,
+            currentDice: this.currentDice,
+            timerDuration: this.timerDuration
+          });
+        }
+        sound.playRollTick();
+        this.claimedThisRound = false;
+        this.updateProbPhaseUI();
+        this.renderBingoCard();
+        this.renderOpponentMatrices();
+        this.updateTargetDisplay();
+        this.updateRoundHint();
+        if (this.mode === 'OFFLINE') this.simulateAITurns();
+        this.startRoundTimer();
+      }
+
+      handleProbBegin(msg) {
+        if (typeof msg.soundEnabled === 'boolean') this.setSoundEnabled(msg.soundEnabled, false);
+        sound.playRollTick();
+        this.probSetup = false;
+        this.roundNumber = msg.roundNumber;
+        this.currentTarget = null;
+        this.currentDice = msg.currentDice || [];
+        this.timerDuration = msg.timerDuration || 30;
+        this.rollHistory = [{ round: this.roundNumber, target: null, dice: [...this.currentDice] }];
+        Object.keys(this.playersMap).forEach(id => {
+          if (this.playersMap[id]) this.playersMap[id].movedThisRound = false;
+        });
+        this.claimedThisRound = false;
+        this.updateProbPhaseUI();
+        this.renderBingoCard();
+        this.renderOpponentMatrices();
+        this.updateTargetDisplay();
+        this.updateRoundHint();
+        this.startRoundTimer();
+      }
+
+      openProbHelp() {
+        const rows = [];
+        for (let t = 2; t <= 12; t++) {
+          const w = 6 - Math.abs(7 - t);
+          rows.push(`<div class="flex items-center gap-2 text-xs"><span class="w-6 text-right font-black text-white font-mono">${t}</span><div class="flex-1 bg-slate-950 rounded-full h-4 overflow-hidden border border-slate-800"><div class="h-full bg-gradient-to-r from-indigo-500 to-purple-400" style="width:${(w / 6) * 100}%"></div></div><span class="w-11 text-slate-300 font-mono text-right">${w}/36</span><span class="w-12 text-amber-300 font-bold text-right">${(w / 36 * 100).toFixed(1)}%</span></div>`);
+        }
+        document.getElementById('probHelpRows').innerHTML = rows.join('');
+        document.getElementById('modalProbHelp').classList.remove('hidden');
+      }
+
+      closeProbHelp() {
+        document.getElementById('modalProbHelp').classList.add('hidden');
+      }
+
       /* PRINTING BINGO CARDS FUNCTIONALITY */
       openPrintModal() {
+        const radio = document.querySelector(`input[name="printContent"][value="${this.isProb() ? 'blank' : 'numbers'}"]`);
+        if (radio) radio.checked = true;
         document.getElementById('modalPrintCards').classList.remove('hidden');
       }
 
@@ -2619,7 +2959,8 @@
             const cardDiv = document.createElement('div');
             cardDiv.className = 'print-card';
 
-            const numbers = this.generateBoardNumbers();
+            const blank = document.querySelector('input[name="printContent"]:checked').value === 'blank';
+            const numbers = blank ? this.blankBoard().map((n, i) => (i === FREE_INDEX ? null : '')) : this.generateBoardNumbers();
 
             let gridHtml = '<div class="print-grid">';
             numbers.forEach((n, idx) => {
@@ -2633,10 +2974,11 @@
 
             cardDiv.innerHTML = `
               <div class="print-card-header">
-                <span class="print-card-title">MATHS BINGO</span>
+                <span class="print-card-title">${blank ? 'PROBABILITY BINGO' : 'MATHS BINGO'}</span>
                 <span class="print-card-id">Card #${cardCounter}</span>
               </div>
               ${gridHtml}
+              ${blank ? '<div class="print-hint">Write a total from 2 to 12 in each square</div>' : ''}
             `;
 
             pageDiv.appendChild(cardDiv);
@@ -2697,7 +3039,8 @@
             items.push({ input: '★ FREE', isFree: true, val: null });
           } else {
             const n = parseInt(inputStr, 10);
-            if (isNaN(n) || n < 1 || n > 100) {
+            const lim = this.gameType === 'PROB' ? [2, 12] : [1, 100];
+            if (isNaN(n) || n < lim[0] || n > lim[1]) {
               items.push({ input: inputStr, isFree: false, val: null, invalidFormat: true });
             } else {
               items.push({ input: inputStr, isFree: false, val: n });
@@ -2715,7 +3058,7 @@
               <i class="fa-solid fa-triangle-exclamation text-lg"></i>
               <span>INVALID ENTRY FORMAT ❌</span>
             </div>
-            <p class="text-xs text-rose-300">Please enter valid numbers (1–100) or * for the Free square.</p>
+            <p class="text-xs text-rose-300">Please enter valid numbers (${this.gameType === 'PROB' ? '2–12' : '1–100'}) or * for the Free square.</p>
           `;
           return;
         }
@@ -2727,7 +3070,11 @@
           const n = item.val;
           item.validRounds = [];
           this.rollHistory.forEach(roll => {
-            if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
+            if (this.gameType === 'PROB') {
+              if (roll.dice && roll.dice.length === 2 && roll.dice[0] + roll.dice[1] === n) {
+                item.validRounds.push(roll);
+              }
+            } else if (this.gameType === 'DICE' || this.gameType === 'DICE12') {
               if (roll.dice && roll.dice.length >= 2 && this.reachableValues(roll.dice).has(n)) {
                 item.validRounds.push(roll);
               }
@@ -2846,7 +3193,9 @@
           if (idx in bestMatching) {
             const matchedRound = bestMatching[idx];
             const roll = item.validRounds.find(r => r.round === matchedRound);
-            const detail = (this.gameType === 'DICE' || this.gameType === 'DICE12')
+            const detail = this.gameType === 'PROB'
+              ? `Matched in Round #${matchedRound} (Dice: [${roll.dice.join(', ')}] = ${roll.dice[0] + roll.dice[1]})`
+              : (this.gameType === 'DICE' || this.gameType === 'DICE12')
               ? `Matched in Round #${matchedRound} (Dice: [${roll.dice.join(', ')}])`
               : `Matched in Round #${matchedRound} (Target: ${roll.target})`;
             results.push({ input: item.val, valid: true, detail: detail });
